@@ -3,5 +3,7 @@
   publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "18"
-  NPM_VERSION = "9"
+  SECRETS_SCAN_OMIT_KEYS = "AGNES_VIDEO_MODEL,AGNES_IMAGE_MODEL,AGNES_API_KEY,GROQ_API_KEY,HF_TOKEN,GROQ_CHAT_MODEL,HF_TEXT_MODEL"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

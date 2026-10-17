@@ -34,7 +34,31 @@ async function requestProvider(
     const text = await response.text();
 
     if (!response.ok) {
-      throw new Error(`${provider} HTTP ${response.status}`);
+      let detail = `HTTP ${response.status}`;
+
+      try {
+        const errorData = JSON.parse(text);
+        const apiError = errorData?.error;
+
+        const errorCode =
+          typeof apiError === 'object'
+            ? apiError?.code || apiError?.type
+            : '';
+
+        const errorMessage =
+          typeof apiError === 'string'
+            ? apiError
+            : apiError?.message;
+
+        const reason = [errorCode, errorMessage]
+          .filter(Boolean)
+          .join(': ')
+          .slice(0, 240);
+
+        if (reason) detail += ` (${reason})`;
+      } catch {}
+
+      throw new Error(`${provider} ${detail}`);
     }
 
     const data = JSON.parse(text);
@@ -73,7 +97,7 @@ export async function runChat(body: {
       name: 'GROQ',
       key: process.env.GROQ_API_KEY?.trim(),
       url: 'https://api.groq.com/openai/v1/chat/completions',
-      model: process.env.GROQ_CHAT_MODEL || 'llama-3.1-8b-instant',
+      model: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-20b',
     },
     {
       name: 'OPENAI',

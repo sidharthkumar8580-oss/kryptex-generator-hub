@@ -43,7 +43,7 @@ export default function ToolGrid() {
       if (selected === 'image') {
         const response = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: topic }) });
         const data = await response.json(); if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error) || 'Image generate nahi ho payi.');
-        setImageUrl(data.dataUrl || data.url); setResult('Image ready hai.'); setProgress('Image generated successfully.');
+        setImageUrl(data.image || data.dataUrl || data.url); setResult('Image ready hai.'); setProgress('Image generated successfully.');
       } else if (selected!== 'video') {
         const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: selected, topic }) });
         const data = await response.json(); if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error) || 'Generator ne response nahi diya.'); setResult(typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2));

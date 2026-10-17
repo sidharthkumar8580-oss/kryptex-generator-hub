@@ -71,7 +71,7 @@ export default function AnkitAIChat(){
         const res=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:finalPrompt,image:uploadPreview})});
         const data=await res.json(); if(!res.ok) throw new Error(typeof data.error==='string'?data.error:JSON.stringify(data.error));
         for(let p=30;p<=80;p+=25){ await new Promise(r=>setTimeout(r,350)); updateActive(s=>({...s,messages:s.messages.map(m=>m.id===assistantId?{...m,progress:p}:m)})); }
-        const imgUrl=data.dataUrl||data.url; updateActive(s=>({...s,messages:s.messages.map(m=>m.id===assistantId?{...m,content:'Ye rahi tumhari image! 🖼️ Click karke download karo',imageUrl:imgUrl,progress:100,status:'done'}:m)}));
+        const imgUrl=data.image||data.dataUrl||data.url; updateActive(s=>({...s,messages:s.messages.map(m=>m.id===assistantId?{...m,content:'Ye rahi tumhari image! 🖼️ Click karke download karo',imageUrl:imgUrl,progress:100,status:'done'}:m)}));
       } else {
         const msgsForApi=[...(activeSession?.messages||[]).filter(m=>!m.imageUrl&&!m.videoUrl).map(({role,content})=>({role,content})),{role:'user',content:text}];
         const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgsForApi})});

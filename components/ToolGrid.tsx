@@ -12,7 +12,7 @@ const tools: Tool[] = [
   { id: 'story', icon: '◷', name: 'Story Maker', category: 'STORYTELLING', detail: 'Fast, engaging mini stories', example: 'Ek student ko future ka AI robot milta hai' },
   { id: 'thumbnail', icon: '▧', name: 'Thumbnail Prompt', category: 'VISUALS', detail: 'Cinematic thumbnail prompts', example: 'Quantum computer, neon purple lab' },
   { id: 'image', icon: '▧', name: 'AI Image Creator', category: 'FREE · IMAGE', detail: 'Prompt se AI image generate karo', example: 'A futuristic purple AI lab, cinematic lighting' },
-  { id: 'video', icon: '▶', name: 'AI Video Generator', category: 'FREE · VIDEO', detail: 'Agnes AI se short video generate karo', example: 'Vertical cinematic shot of a futuristic AI lab' }
+  { id: 'video', icon: '▶', name: 'AI Video Generator', category: 'FREE · VIDEO', detail: 'AI se short video generate karo', example: 'Vertical cinematic shot of a futuristic AI lab' }
 ];
 
 export default function ToolGrid() {

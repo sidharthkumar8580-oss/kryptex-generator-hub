@@ -13,6 +13,7 @@ export default function Header() {
       </Link>
       <nav className="main-nav" aria-label="Main navigation">
         <Link className={pathname === '/' ? 'nav-link active' : 'nav-link'} href="/#tools">Tools</Link>
+        <Link className={pathname === '/video-studio' ? 'nav-link active' : 'nav-link'} href="/video-studio">Video Studio</Link>
         <Link className={pathname === '/ai' ? 'nav-link active' : 'nav-link'} href="/ai">Ankit Kryptex AI</Link>
       </nav>
       <Link className="nav-price" href="/#pricing"><span className="spark-small">✦</span> Pricing <b>₹99</b></Link>

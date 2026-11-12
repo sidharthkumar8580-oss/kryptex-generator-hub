@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { isPremiumCookieValid, PREMIUM_COOKIE } from '@/lib/premium';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,9 +10,6 @@ function isTrustedHost(hostname: string) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isPremiumCookieValid(cookies().get(PREMIUM_COOKIE)?.value)) {
-    return NextResponse.json({ error: 'Premium plan required.' }, { status: 402 });
-  }
   const raw = request.nextUrl.searchParams.get('url');
   if (!raw || raw.length > 2048) return NextResponse.json({ error: 'Video URL missing hai.' }, { status: 400 });
 

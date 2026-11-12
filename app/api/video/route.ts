@@ -1,7 +1,5 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAgnesVideo } from '@/lib/agnes';
-import { isPremiumCookieValid, PREMIUM_COOKIE } from '@/lib/premium';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,11 +7,6 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const hasPremium = isPremiumCookieValid(cookies().get(PREMIUM_COOKIE)?.value);
-    if (!hasPremium) {
-      return NextResponse.json({ error: 'Video Generator use karne ke liye ₹99 Premium plan unlock karo.' }, { status: 402 });
-    }
-
     const prompt = typeof body?.prompt === 'string' ? body.prompt.trim() : '';
     if (prompt.length < 8) return NextResponse.json({ error: 'Video ke liye kam se kam 8 characters ka detailed prompt likho.' }, { status: 400 });
     if (prompt.length > 2500) return NextResponse.json({ error: 'Prompt 2500 characters se chhota rakho.' }, { status: 400 });

@@ -3,59 +3,62 @@
 **Tagline:** Ek Website, Saare Kaam + Apna AI  
 **Brand/domain target:** Ankit Kryptex · `ankitkryptex.com`
 
-A mobile-first Next.js 14 + TypeScript + Tailwind project with a black glassmorphism UI and purple/pink gradients. This follows the requested v14 stack; Next.js 14 is end-of-life, so upgrade to a supported Next.js major before a real public production launch.
+A mobile-first Next.js + TypeScript + Tailwind project with a black glassmorphism UI and purple/pink gradients.
 
 ## What is included
 
 - Landing page with Tools, Ankit Kryptex AI, Pricing ₹99, and channel link `https://www.youtube.com/@Ankitkryptex`.
 - Ten generators: Shorts Script, Hook, Titles, Hashtags/SEO, Captions, Shayari, Story, Thumbnail Prompt, AI Image Creator, and premium Video Generator.
-- `/ai`: full-page ChatGPT-like Ankit Kryptex AI interface with text chat and image requests.
-- Agnes asynchronous video creation/status polling using `agnes-video-2.5-flash` (current documented Agnes model ID), with premium-session protection.
+- `/ai`: full-page Ankit Kryptex AI interface with text chat and image requests.
+- `/video-studio`: Agnes video workspace with prompt, duration and aspect-ratio controls, job polling, preview, download, and browser-based trim/export.
+- Server-side Agnes video creation and status polling with signed premium-session protection.
 - Razorpay order + signature verification routes for a ₹99 one-time order; a signed, HttpOnly premium cookie unlocks video after successful verified payment.
 - Server-side-only API credentials via environment variables. **Never set secret keys under `NEXT_PUBLIC_*`, commit `.env.local`, or send API keys to the browser.**
 
 ## Run locally
 
-Needs Node.js 18.17+ (Node 20 LTS recommended).
+Needs Node.js 20 LTS recommended.
 
 ```bash
 npm install
 cp .env.example .env.local
-```
-
-
-To turn on Agnes videos, set `AGNES_API_KEY` to a valid **rotated/new** key in `.env.local`. Current documented model name is `agnes-video-2.5-flash`; `veo-3.0-flash` is not the model ID used in the current Agnes video API reference. Flash video supports 720P in the documented protocol. Provider availability, billing, limits, and output/audio properties are controlled by Agnes, not this app.
-
-To accept actual ₹99 payments, configure `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` from your Razorpay account. Payment is intentionally not simulated: when keys are missing, checkout returns a configuration message and premium access is not granted. Use Razorpay test keys while testing. Do not go live until the amount, plan terms, privacy policy, refund/cancellation information and customer support details are accurate.
-
-Then:
-
-```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+## Netlify deployment
 
-## Deploy on Vercel
+The production site is deployed through the connected GitHub repository on Netlify. Pushes merged into `master` trigger the production build. The current production deployment is available at:
 
-1. Upload the project to a private Git repository, without `.env.local` or secrets.
-2. Import it into Vercel as a Next.js project.
-3. Add all required environment variables in Vercel Project Settings → Environment Variables.
-4. Deploy and set the custom domain in Vercel and at the domain registrar. Owning/configuring `ankitkryptex.com` is a separate step; the code does not register the domain automatically.
+- https://ankitkryptex.netlify.app
+- https://ankitkryptex.com (custom domain, if DNS and domain mapping are active)
+
+Configure these variables in Netlify Project configuration → Environment variables. Keep secrets server-side and enable Functions/Runtime scopes:
+
+- `AGNES_API_KEY` — valid Agnes API key.
+- `AGNES_VIDEO_MODEL` — defaults to `agnes-video-2.5-flash` in the app.
+- `PREMIUM_SESSION_SECRET` — strong random server-side secret used to sign premium sessions.
+- `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` — required for real checkout and payment verification.
+- `GROQ_API_KEY`, `OPENAI_API_KEY`, and `HF_TOKEN` — required only by the respective AI features/providers configured to use them.
+- `NEXT_PUBLIC_SITE_URL` — public canonical site URL.
+
+After changing environment variables, trigger a fresh Netlify build so deployed functions receive the updated values. Never commit actual credentials. Use payment-provider test credentials for testing; do not enable live payments until an adult account owner has reviewed the payment setup, pricing, terms, refund/cancellation information, privacy policy, and customer-support details.
 
 ## Useful routes
 
-- `/` — home and ten generator tools
-- `/ai` — full-screen Ankit Kryptex AI
-- `POST /api/image` — image prompt result
+- `/` — home and generator tools
+- `/ai` — Ankit Kryptex AI
+- `/video-studio` — Agnes Video Studio
+- `POST /api/image` — image generation backend
 - `POST /api/generate` — text-generator backend
 - `POST /api/video` — premium-gated Agnes video job creation
 - `GET /api/video/status?videoId=...` — premium-gated status check
-- `POST /api/billing/order` — creates a ₹99 Razorpay order
+- `POST /api/video/download` — same-origin video download proxy
+- `POST /api/billing/order` — creates a Razorpay order
 - `POST /api/billing/verify` — verifies Razorpay signature and sets premium cookie
 
 ## Important notes
 
-- A ₹99 payment does not guarantee that third-party generation costs are covered for every request. Keep limits, usage monitoring, terms, and pricing aligned with actual provider pricing.
-- The Agnes key pasted into the project brief has deliberately **not** been copied into any file. Treat it as exposed and revoke/rotate it before using the project.
-- This repository includes the application code. It has not been deployed to or verified under `ankitkryptex.com`; configure environment variables and deploy it before sharing the site publicly.
+- A ₹99 payment does not guarantee third-party generation costs are covered for every request. Keep limits, usage monitoring, terms, and pricing aligned with actual provider pricing.
+- Agnes availability, billing, limits, and output/audio properties are controlled by Agnes, not this app.
+- Browser-based trimming uses FFmpeg.wasm on demand and may be memory-intensive on some phones; original video download remains available.
+- Do not expose API credentials in client-side code or public repositories.

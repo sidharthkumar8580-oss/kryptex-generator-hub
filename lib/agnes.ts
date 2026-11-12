@@ -57,6 +57,9 @@ export async function createAgnesVideo(prompt: string, seconds = 5, aspectRatio 
     }
 
     lastError = messageFrom(payload, 'Agnes API error (' + response.status + ').');
+    if (payload?.code === 'video_queue_full' || /video.?queue.?full|queue is full|queue full/i.test(lastError)) {
+      throw new Error('Agnes ka free video queue abhi full hai. Request accept nahi hui, isliye video generate nahi hogi. 1–2 minute baad ek baar dobara try karo.');
+    }
     if (retryable.has(response.status) && attempt < 2) {
       await sleep(Math.min(12000, 2000 * Math.pow(2, attempt)));
       continue;

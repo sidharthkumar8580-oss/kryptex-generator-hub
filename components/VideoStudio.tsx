@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 
 type VideoStatus = { status: string; progress: number; url: string | null; error: string | null };
 type FFmpegLike = {
@@ -16,7 +15,6 @@ type FFmpegLike = {
 const proxyUrl = (url: string) => '/api/video/download?url=' + encodeURIComponent(url);
 
 export default function VideoStudio() {
-  const [premium, setPremium] = useState<boolean | null>(null);
   const [prompt, setPrompt] = useState('');
   const [seconds, setSeconds] = useState(5);
   const [aspectRatio, setAspectRatio] = useState('9:16');
@@ -38,24 +36,6 @@ export default function VideoStudio() {
 
   const videoDownloadUrl = useMemo(() => videoUrl ? proxyUrl(videoUrl) : '', [videoUrl]);
 
-  async function checkPremium() {
-    try {
-      const response = await fetch('/api/video/access', { cache: 'no-store' });
-      const data = await response.json();
-      setPremium(response.ok && data.premium === true);
-    } catch { setPremium(false); }
-  }
-
-  useEffect(() => {
-    void checkPremium();
-    const refresh = () => { void checkPremium(); };
-    window.addEventListener('focus', refresh);
-    window.addEventListener('kryptex-premium-updated', refresh);
-    return () => {
-      window.removeEventListener('focus', refresh);
-      window.removeEventListener('kryptex-premium-updated', refresh);
-    };
-  }, []);
 
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -160,19 +140,17 @@ export default function VideoStudio() {
           <Link href="/#tools" className="studio-back">← All tools</Link>
         </div>
 
-        {premium === false && <div className="studio-lock"><span>✦</span><div><strong>Premium access required</strong><p>Agnes video generation aur editor use karne ke liye ₹99 Premium plan unlock karo.</p><Link className="button-primary" href="/#pricing">Unlock Premium · ₹99 ↗</Link></div></div>}
-        {premium === null && <div className="studio-info">Premium access check ho raha hai…</div>}
-
+        
         <div className="studio-grid">
           <section className="studio-card">
             <div className="studio-card-title"><span className="studio-step">01</span><div><h2>Create video</h2><p>Apna scene aur output format set karo.</p></div></div>
             <label className="field-label" htmlFor="agnes-prompt">VIDEO PROMPT</label>
-            <textarea id="agnes-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); if (premium === false) window.location.href = '/#pricing'; else if (premium === true) void generateVideo(); } }} maxLength={2500} placeholder="Example: Cinematic vertical shot of a futuristic electric car driving through a neon-lit city at night, realistic camera movement, detailed reflections…" />
+            <textarea id="agnes-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void generateVideo(); } }} maxLength={2500} placeholder="Example: Cinematic vertical shot of a futuristic electric car driving through a neon-lit city at night, realistic camera movement, detailed reflections…" />
             <div className="studio-fields">
               <label><span className="field-label">DURATION</span><select value={seconds} onChange={(event) => setSeconds(Number(event.target.value))}><option value={5}>5 seconds</option><option value={8}>8 seconds</option><option value={10}>10 seconds</option><option value={12}>12 seconds</option></select></label>
               <label><span className="field-label">ASPECT RATIO</span><select value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)}><option value="9:16">9:16 · Shorts</option><option value="16:9">16:9 · YouTube</option><option value="1:1">1:1 · Square</option></select></label>
             </div>
-            <div className="studio-actions"><span>{prompt.length}/2500 · Ctrl + Enter to generate</span><button className="button-primary" type="button" disabled={busy || premium === null} onClick={() => { if (premium === false) { window.location.href = '/#pricing'; return; } void generateVideo(); }}>{busy ? <><i className="spinner" /> Generating…</> : premium === false ? 'Unlock Premium · ₹99' : '▶ Generate with Agnes'}</button></div>
+            <div className="studio-actions"><span>{prompt.length}/2500 · Ctrl + Enter to generate</span><button className="button-primary" type="button" disabled={busy} onClick={() => void generateVideo()}>{busy ? <><i className="spinner" /> Generating…</> : '▶ Generate with Agnes'}</button></div>
             {statusText && <div className="studio-status" role="status"><div className="studio-status-top"><span>{statusText}</span><b>{progress}%</b></div><div className="studio-progress"><i style={{ width: progress + '%' }} /></div></div>}
             {error && <div className="error-box" role="alert">{error}</div>}
           </section>
@@ -188,7 +166,7 @@ export default function VideoStudio() {
           <div className="editor-controls">
             <label><span className="field-label">START (SECONDS)</span><input type="number" min="0" max={duration || seconds} step="0.5" value={startAt} onChange={(event) => setStartAt(Number(event.target.value))} /></label>
             <label><span className="field-label">END (SECONDS)</span><input type="number" min="0.5" max={duration || seconds} step="0.5" value={endAt} onChange={(event) => setEndAt(Number(event.target.value))} /></label>
-            <button className="button-primary" type="button" disabled={editBusy || !premium} onClick={exportTrim}>{editBusy ? 'Processing…' : '✂ Trim & export'}</button>
+            <button className="button-primary" type="button" disabled={editBusy} onClick={exportTrim}>{editBusy ? 'Processing…' : '✂ Trim & export'}</button>
           </div>
           <p className="editor-hint">Note: Browser mein FFmpeg pehli baar download hota hai aur phone par heavy ho sakta hai. Trim keyframe ke paas snap ho sakta hai; 120 MB se badi files editor mein process nahi hongi.</p>
           {editProgress && <p className="status-note" role="status">{editProgress}</p>}

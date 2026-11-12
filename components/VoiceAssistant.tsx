@@ -1,123 +1,42 @@
 'use client';
-
 import { useEffect, useRef, useState } from 'react';
-
-type SpeechResult = { 0: { transcript: string }; isFinal: boolean };
-type SpeechEvent = { results: ArrayLike<SpeechResult> };
-type Recognition = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((event: SpeechEvent) => void) | null;
-  onerror: ((event: { error?: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-type SpeechWindow = Window & {
-  SpeechRecognition?: new () => Recognition;
-  webkitSpeechRecognition?: new () => Recognition;
-};
-
-export default function VoiceAssistant() {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [listening, setListening] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-  const [error, setError] = useState('');
-  const recognitionRef = useRef<Recognition | null>(null);
-
-  useEffect(() => () => {
-    recognitionRef.current?.stop();
-    if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
-  }, []);
-
-  function startListening() {
-    const speechWindow = window as SpeechWindow;
-    const RecognitionApi = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
-    if (!RecognitionApi) {
-      setError('Is browser mein voice input support nahi hai. Chrome mein try karo ya neeche type karo.');
-      return;
-    }
-    setError('');
-    const recognition = new RecognitionApi();
-    recognition.lang = 'hi-IN';
-    recognition.interimResults = false;
-    recognition.continuous = false;
-    recognition.onresult = (event) => {
-      const text = Array.from(event.results).map((item) => item[0].transcript).join(' ').trim();
-      if (text) setDraft(text);
-    };
-    recognition.onerror = (event) => {
-      setError(event.error === 'not-allowed' ? 'Microphone permission allow karo.' : 'Voice samajh nahi aayi. Dobara try karo.');
-      setListening(false);
-    };
-    recognition.onend = () => setListening(false);
-    recognitionRef.current = recognition;
-    try { recognition.start(); setListening(true); }
-    catch { setListening(false); setError('Microphone start nahi ho paya. Dobara try karo.'); }
-  }
-
-  async function ask() {
-    const question = draft.trim();
-    if (!question || busy) return;
-    setBusy(true); setError(''); setAnswer(''); setDraft('');
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content: question }] })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'AI reply nahi de paya.');
-      setAnswer(String(data.reply || 'Mujhe reply nahi mila.'));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection error.');
-    } finally { setBusy(false); }
-  }
-
-  function speakAnswer() {
-    if (!answer || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(answer);
-    utterance.lang = /[\u0900-\u097F]/.test(answer) ? 'hi-IN' : 'en-IN';
-    utterance.rate = 1;
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function stopSpeaking() {
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
-  }
-
-  return <>
-    <button className="voice-launch" type="button" onClick={() => setOpen(!open)} aria-label="Open voice assistant">
-      <span>{open ? '×' : '🎙'}</span><b>{open ? 'Close' : 'Voice AI'}</b>
-    </button>
-    {open && <aside className="voice-panel" aria-label="Voice assistant panel">
-      <div className="voice-panel-head"><div><small>ANKIT KRYPTEX</small><strong>Voice Assistant</strong></div><button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button></div>
-      <p className="voice-hint">Hindi ya English mein bolo, ya message type karo. AI ka jawab sun bhi sakte ho.</p>
-      <div className="voice-controls">
-        <button className={listening ? 'voice-mic listening' : 'voice-mic'} type="button" onClick={listening ? () => recognitionRef.current?.stop() : startListening} disabled={busy}>{listening ? '■ Stop listening' : '🎙 Speak'}</button>
-        <span>{listening ? 'Listening…' : 'Mic permission required'}</span>
-      </div>
-      <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} placeholder="Apna sawal yahan likho..." />
-      <button className="voice-send" type="button" onClick={() => void ask()} disabled={busy || !draft.trim()}>{busy ? 'Thinking…' : 'Ask Ankit AI →'}</button>
-      {error && <p className="voice-error" role="alert">{error}</p>}
-      {answer && <div className="voice-answer"><strong>AI ka jawab</strong><p>{answer}</p><div><button type="button" onClick={speakAnswer} disabled={speaking}>▶ {speaking ? 'Speaking…' : 'Listen'}</button><button type="button" onClick={stopSpeaking}>■ Stop</button></div></div>}
-      <small className="voice-footnote">Voice recognition browser ke support aur microphone permission par depend karta hai.</small>
-    </aside>}
-    <style jsx>{`
-      .voice-launch{position:fixed;z-index:90;right:24px;bottom:88px;display:flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid rgba(224,180,255,.4);border-radius:30px;background:linear-gradient(120deg,#7e22ce,#db2777);color:#fff;font-size:12px;font-weight:800;box-shadow:0 10px 30px #0008;cursor:pointer}
-      .voice-launch span{font-size:17px}.voice-panel{position:fixed;z-index:100;right:22px;bottom:142px;width:min(360px,calc(100vw - 28px));max-height:min(72vh,650px);overflow:auto;padding:16px;border:1px solid #42334f;border-radius:18px;background:#111016;color:#f5edff;box-shadow:0 18px 60px #000b}
-      .voice-panel-head{display:flex;justify-content:space-between;align-items:center}.voice-panel-head div{display:flex;flex-direction:column;gap:4px}.voice-panel-head small{font-size:8px;letter-spacing:.16em;color:#b78be7}.voice-panel-head strong{font-size:16px}.voice-panel-head button{border:0;background:#292331;color:#fff;border-radius:9px;width:30px;height:30px;font-size:20px;cursor:pointer}
-      .voice-hint{font-size:11px;line-height:1.6;color:#aaa0b6}.voice-controls{display:flex;align-items:center;gap:10px;margin:12px 0}.voice-controls span,.voice-footnote{font-size:9px;color:#8f859b}.voice-mic,.voice-send{border:0;border-radius:10px;padding:10px 13px;background:linear-gradient(120deg,#9333ea,#db2777);color:#fff;font-size:11px;font-weight:750;cursor:pointer}.voice-mic.listening{background:#be123c}.voice-panel textarea{width:100%;resize:vertical;border:1px solid #393040;border-radius:10px;background:#09080d;color:#fff;padding:11px;font:inherit;font-size:12px;outline:none}.voice-send{width:100%;margin-top:8px}.voice-send:disabled{opacity:.5}.voice-error{font-size:10px;color:#fda4af}.voice-answer{margin-top:13px;padding:12px;border:1px solid #382b47;border-radius:12px;background:#191420}.voice-answer strong{font-size:10px;color:#d8b4ff}.voice-answer p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.65;color:#e8dfef}.voice-answer div{display:flex;gap:8px}.voice-answer button{border:1px solid #544163;border-radius:8px;background:#251c30;color:#e9d5ff;padding:7px 10px;font-size:10px;cursor:pointer}.voice-footnote{display:block;margin-top:12px;line-height:1.5}
-      @media(max-width:600px){.voice-launch{right:14px;bottom:78px;padding:10px 13px}.voice-panel{right:10px;bottom:130px}}
-    `}</style>
-  </>;
+type SpeechResult={0:{transcript:string};isFinal:boolean};
+type Recognition={lang:string;interimResults:boolean;continuous:boolean;onresult:((e:{results:ArrayLike<SpeechResult>})=>void)|null;onerror:((e:{error?:string})=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void};
+type SpeechWindow=Window&{SpeechRecognition?:new()=>Recognition;webkitSpeechRecognition?:new()=>Recognition};
+export default function VoiceAssistant(){
+ const [open,setOpen]=useState(false),[listening,setListening]=useState(false),[thinking,setThinking]=useState(false),[speaking,setSpeaking]=useState(false),[transcript,setTranscript]=useState(''),[reply,setReply]=useState('Namaste! Main Ankit Kryptex Voice AI hoon. Mic allow karo aur baat shuru karo.'),[error,setError]=useState(''),[typed,setTyped]=useState('');
+ const active=useRef(false),busy=useRef(false),recognition=useRef<Recognition|null>(null);
+ useEffect(()=>()=>{active.current=false;recognition.current?.stop();window.speechSynthesis?.cancel()},[]);
+ function stop(){active.current=false;recognition.current?.stop();window.speechSynthesis?.cancel();busy.current=false;setListening(false);setThinking(false);setSpeaking(false)}
+ function listen(){
+  if(!active.current||busy.current||window.speechSynthesis?.speaking)return;
+  const W=window as SpeechWindow,API=W.SpeechRecognition||W.webkitSpeechRecognition;
+  if(!API){setError('Voice recognition ke liye Chrome browser try karo.');active.current=false;return}
+  const r=new API();r.lang='hi-IN';r.interimResults=false;r.continuous=false;
+  r.onresult=e=>{const q=Array.from(e.results).map(x=>x[0].transcript).join(' ').trim();if(q)void ask(q)};
+  r.onerror=e=>{setListening(false);if(e.error==='not-allowed'){setError('Microphone permission allow karo.');active.current=false}else if(active.current&&e.error==='no-speech')setTimeout(listen,500);else if(active.current)setError('Mic issue: '+e.error)};
+  r.onend=()=>{setListening(false);if(active.current&&!busy.current&&!window.speechSynthesis?.speaking)setTimeout(listen,450)};
+  recognition.current=r;try{r.start();setListening(true);setError('')}catch{setListening(false);setError('Mic start nahi hua. Dobara try karo.')}
+ }
+ function say(text:string){window.speechSynthesis?.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=/[\u0900-\u097F]/.test(text)?'hi-IN':'en-IN';u.rate=1.02;u.onstart=()=>setSpeaking(true);u.onend=()=>{setSpeaking(false);if(active.current)setTimeout(listen,450)};u.onerror=()=>setSpeaking(false);window.speechSynthesis?.speak(u)}
+ async function ask(q:string){if(!q.trim()||busy.current)return;busy.current=true;setThinking(true);setTranscript(q);setError('');
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'You are Ankit Kryptex Voice AI, a friendly witty Hindi-English conversational assistant. Reply naturally and briefly in 1-4 sentences. Chat, explain, tell clean jokes and answer follow-ups. Match the user language.'},{role:'user',content:q}]})});const d=await r.json();if(!r.ok)throw new Error(d.error||'AI reply nahi de paya.');const a=String(d.reply||'Mujhe reply nahi mila.');setReply(a);busy.current=false;setThinking(false);say(a)}
+  catch(e){setError(e instanceof Error?e.message:'Connection error.');busy.current=false;setThinking(false);if(active.current)setTimeout(listen,700)}
+ }
+ async function start(){setOpen(true);setError('');try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());active.current=true;listen()}catch{setError('Microphone permission popup mein Allow select karo, phir dobara start karo.')}}
+ function send(){const q=typed.trim();if(!q)return;setTyped('');void ask(q)}
+ return <><button className="voice-launch" onClick={()=>{if(open){stop();setOpen(false)}else setOpen(true)}}><span>✦</span><b>Talk to AI</b></button>
+ {open&&<div className="voice-overlay" role="dialog" aria-modal="true"><div className="voice-top"><span>ANKIT KRYPTEX <i>VOICE AI</i></span><button onClick={()=>{stop();setOpen(false)}}>✕</button></div>
+ <div className="voice-center"><div className={'voice-orb '+(listening?'orb-listening':speaking?'orb-speaking':thinking?'orb-thinking':'')}><div className="orb-ring ring-a"/><div className="orb-ring ring-b"/><div className="orb-core">✦</div></div>
+ <h2>{listening?'I’m listening…':thinking?'Thinking…':speaking?'Speaking…':'Hey, what’s up?'}</h2><p>{listening?'Hindi ya English mein bolo':speaking?'Ankit AI is replying':'Baat karo, sawal pucho, joke suno.'}</p>
+ {transcript&&<div className="voice-transcript"><small>YOU SAID</small>{transcript}</div>}<div className="voice-reply">{reply}</div>{error&&<div className="voice-error" role="alert">{error}</div>}
+ <div className="voice-action-row">{!listening&&!active.current?<button className="voice-main-action" onClick={()=>void start()}>🎙 Allow mic & start</button>:<button className="voice-main-action stop" onClick={stop}>■ Stop conversation</button>}<button className="voice-small-action" onClick={()=>say(reply)}>▶ Replay</button></div>
+ <div className="voice-type-row"><input value={typed} onChange={e=>setTyped(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')send()}} placeholder="Type a message…"/><button onClick={send} disabled={!typed.trim()||thinking}>↑</button></div><small className="voice-note">Mic permission browser se maangi jayegi. Jawab ke baad voice mode automatically dobara listen karega.</small></div></div>}
+ <style jsx>{`
+ .voice-launch{position:fixed;z-index:90;right:24px;bottom:88px;display:flex;align-items:center;gap:9px;padding:12px 17px;border:1px solid #e0b4ff77;border-radius:30px;background:linear-gradient(120deg,#7e22ce,#db2777);color:#fff;font-size:12px;font-weight:800;box-shadow:0 10px 32px #0009;cursor:pointer}.voice-launch span{font-size:18px}
+ .voice-overlay{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at 50% 38%,#241536,#0c0b11 48%,#07070a);color:#fff;display:flex;flex-direction:column;padding:22px max(20px,calc((100vw - 1000px)/2))}.voice-top{display:flex;align-items:center;justify-content:space-between;font-size:11px;letter-spacing:.16em;color:#cbb6e5;font-weight:800}.voice-top i{font-style:normal;color:#ec8de2;margin-left:7px}.voice-top button{width:38px;height:38px;border:1px solid #51405f;border-radius:50%;background:#17121e;color:#fff;font-size:18px}
+ .voice-center{margin:auto;width:min(540px,100%);display:flex;align-items:center;flex-direction:column;text-align:center}.voice-orb{position:relative;width:190px;height:190px;display:grid;place-items:center;margin:5px auto 30px}.orb-core{width:112px;height:112px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 28%,#f0c7ff,#a855f7 38%,#5724a4 72%,#21133b);box-shadow:0 0 35px #a855f7aa,inset 0 0 25px #fff5;animation:orbFloat 3.5s ease-in-out infinite;font-size:43px;color:white;text-shadow:0 0 20px #fff}.orb-ring{position:absolute;inset:5px;border:1px solid #d7a5ff66;border-radius:43% 57% 60% 40%;animation:orbSpin 8s linear infinite}.ring-b{inset:0 16px;border-color:#ec8de288;animation:orbSpin 11s linear infinite reverse}.voice-orb.orb-listening .orb-core{animation:orbPulse 1.25s infinite;box-shadow:0 0 65px #a855f7,0 0 110px #9333ea66}.voice-orb.orb-speaking .orb-core{animation:orbPulse .65s infinite;background:radial-gradient(circle at 35% 28%,#ffe0f7,#db55b7 40%,#622a9c 80%)}.voice-orb.orb-thinking .orb-ring{animation-duration:1.4s}@keyframes orbSpin{to{transform:rotate(360deg)}}@keyframes orbPulse{50%{transform:scale(1.13);filter:brightness(1.25)}}@keyframes orbFloat{50%{transform:translateY(-7px)}}
+ .voice-center h2{font-size:clamp(25px,5vw,34px);margin:0 0 7px}.voice-center>p{font-size:12px;color:#a99bb8;margin:0 0 20px}.voice-transcript,.voice-reply{width:100%;max-width:480px;border:1px solid #44324f;border-radius:14px;background:#ffffff08;padding:12px 15px;margin:5px 0;color:#e9dff0;font-size:12px;line-height:1.65}.voice-transcript small{display:block;color:#c28cf2;font-size:8px;letter-spacing:.15em;margin-bottom:4px}.voice-reply{color:#d2c3df;max-height:110px;overflow:auto}.voice-error{color:#fda4af;font-size:11px;margin:8px}.voice-action-row{display:flex;gap:10px;margin:20px 0 14px}.voice-main-action,.voice-small-action{border:1px solid #8d50b9;border-radius:30px;padding:12px 18px;background:linear-gradient(120deg,#8536c9,#c83eaa);color:white;font-weight:750;font-size:11px}.voice-main-action.stop{background:#7f1d3d;border-color:#be456a}.voice-small-action{background:#21172b;border-color:#4b3b5a}.voice-type-row{display:flex;width:min(440px,100%);gap:8px;padding:7px;border:1px solid #45364f;border-radius:15px;background:#100d15}.voice-type-row input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#fff;padding:8px;font-size:12px}.voice-type-row button{width:34px;height:34px;border:0;border-radius:10px;background:#9333ea;color:#fff;font-size:20px}.voice-note{max-width:430px;margin-top:13px;color:#766b80;font-size:9px;line-height:1.6}
+ @media(max-width:600px){.voice-launch{right:14px;bottom:78px}.voice-overlay{padding:14px}.voice-orb{width:160px;height:160px;margin-bottom:24px}.orb-core{width:94px;height:94px}.voice-action-row{flex-wrap:wrap;justify-content:center}}@media(prefers-reduced-motion:reduce){.orb-core,.orb-ring{animation:none!important}}
+ `}</style></>;
 }

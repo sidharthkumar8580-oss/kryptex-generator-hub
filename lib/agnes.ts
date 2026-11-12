@@ -1,4 +1,5 @@
-const AGNES_BASE = (process.env.AGNES_API_BASE || 'https://apihub.agnes-ai.com').replace(/\/+$/, '');
+const configuredBase = process.env.AGNES_BASE_URL?.trim() || process.env.AGNES_API_BASE?.trim() || 'https://apihub.agnes-ai.com';
+const AGNES_BASE = configuredBase.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function messageFrom(payload: any, fallback: string) {

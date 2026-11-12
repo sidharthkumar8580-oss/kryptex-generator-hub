@@ -5,15 +5,15 @@ type Recognition={lang:string;interimResults:boolean;continuous:boolean;onresult
 type SpeechWindow=Window&{SpeechRecognition?:new()=>Recognition;webkitSpeechRecognition?:new()=>Recognition};
 export default function VoiceAssistant(){
  const [open,setOpen]=useState(false),[listening,setListening]=useState(false),[thinking,setThinking]=useState(false),[speaking,setSpeaking]=useState(false),[transcript,setTranscript]=useState(''),[reply,setReply]=useState('Namaste! Main Kryptex Voice AI hoon. Bolo, kya baat karni hai?'),[error,setError]=useState(''),[typed,setTyped]=useState('');
- const active=useRef(false),busy=useRef(false),recognition=useRef<Recognition|null>(null);
+ const active=useRef(false),busy=useRef(false),recognition=useRef<Recognition|null>(null),speechLang=useRef('hi-IN');
  useEffect(()=>()=>{active.current=false;recognition.current?.stop();window.speechSynthesis?.cancel()},[]);
  function stop(){active.current=false;recognition.current?.stop();window.speechSynthesis?.cancel();busy.current=false;setListening(false);setThinking(false);setSpeaking(false)}
  function listen(){
   if(!active.current||busy.current||window.speechSynthesis?.speaking)return;
   const W=window as SpeechWindow,API=W.SpeechRecognition||W.webkitSpeechRecognition;
   if(!API){setError('Voice recognition ke liye Chrome browser try karo.');active.current=false;return}
-  const r=new API();r.lang='hi-IN';r.interimResults=false;r.continuous=false;
-  r.onresult=e=>{const q=Array.from(e.results).map(x=>x[0].transcript).join(' ').trim();if(q)void ask(q)};
+  const r=new API();r.lang=speechLang.current;r.interimResults=false;r.continuous=false;
+  r.onresult=e=>{const q=Array.from(e.results).map(x=>x[0].transcript).join(' ').trim();if(q){speechLang.current=/[\\u0900-\\u097F]/.test(q)?'hi-IN':'en-IN';void ask(q)}};
   r.onerror=e=>{setListening(false);if(e.error==='not-allowed'){setError('Microphone permission allow karo.');active.current=false}else if(active.current&&e.error==='no-speech')setTimeout(listen,500);else if(active.current)setError('Mic issue: '+e.error)};
   r.onend=()=>{setListening(false);if(active.current&&!busy.current&&!window.speechSynthesis?.speaking)setTimeout(listen,450)};
   recognition.current=r;try{r.start();setListening(true);setError('')}catch{setListening(false);setError('Mic start nahi hua. Dobara try karo.')}

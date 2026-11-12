@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   try {
     const payload = await getAgnesVideoStatus(videoId);
     const status = String(payload.status || 'in_progress').toLowerCase();
-    const url = typeof payload.url === 'string' ? payload.url : null;
+    const url = typeof payload.url === 'string' ? payload.url : (typeof payload.metadata?.url === 'string' ? payload.metadata.url : null);
     const error = typeof payload.error === 'string' ? payload.error : payload.error ? JSON.stringify(payload.error) : null;
     return NextResponse.json({
       status,

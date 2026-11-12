@@ -83,26 +83,30 @@ export default function VideoStudio() {
 
   async function loadEditor() {
     if (ffmpegRef.current) { setFfmpegReady(true); return ffmpegRef.current; }
-    setEditBusy(true); setEditorError(''); setEditProgress('Video editor load ho raha hai. Pehli baar thoda time lag sakta hai…');
+    setEditBusy(true); setEditorError(''); setEditProgress('Video editor engine download ho raha hai…');
     try {
       const dynamicImport = new Function('url', 'return import(url)') as (url: string) => Promise<any>;
-      const mod = await dynamicImport('https://esm.sh/@ffmpeg/ffmpeg@0.12.15');
-      const util = await dynamicImport('https://esm.sh/@ffmpeg/util@0.12.2');
+      // Bundle the browser module so its internal dependencies resolve reliably on mobile browsers.
+      const [mod, util] = await Promise.all([
+        dynamicImport('https://esm.sh/@ffmpeg/ffmpeg@0.12.15?bundle&target=es2022'),
+        dynamicImport('https://esm.sh/@ffmpeg/util@0.12.2?bundle&target=es2022')
+      ]);
       const ffmpeg: FFmpegLike = new mod.FFmpeg();
       ffmpeg.on('progress', (event: any) => {
         const percent = Math.round((Number(event?.progress) || 0) * 100);
         setEditProgress('Editing… ' + percent + '%');
       });
-      const coreJs = await util.toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js', 'text/javascript');
-      const coreWasm = await util.toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm', 'application/wasm');
+      // jsDelivr has more consistent CORS responses for the core assets than the previous unpkg URLs.
+      const coreJs = await util.toBlobURL('https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js', 'text/javascript');
+      const coreWasm = await util.toBlobURL('https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm', 'application/wasm');
       await ffmpeg.load({ coreURL: coreJs, wasmURL: coreWasm });
       ffmpegRef.current = ffmpeg;
       setFfmpegReady(true);
       setEditProgress('Editor ready hai.');
       return ffmpeg;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Editor load nahi ho paya.';
-      setEditorError('Browser editor load nahi hua: ' + message + '. Original video download kar sakte ho.');
+      const message = err instanceof Error ? err.message : String(err || 'Unknown browser error');
+      setEditorError('Browser editor load nahi hua: ' + message + '. Internet connection check karke page reload karo; original video safe hai.');
       setEditProgress('');
       return null;
     } finally { setEditBusy(false); }

@@ -18,10 +18,8 @@ async function loadRazorpay() {
     const old = document.querySelector<HTMLScriptElement>('#razorpay-checkout-script');
     if (old) { old.addEventListener('load', () => resolve(!!window.Razorpay), { once: true }); old.addEventListener('error', () => resolve(false), { once: true }); return; }
     const script = document.createElement('script');
-    script.id = 'razorpay-checkout-script';
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(!!window.Razorpay);
-    script.onerror = () => resolve(false);
+    script.id = 'razorpay-checkout-script'; script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(!!window.Razorpay); script.onerror = () => resolve(false);
     document.body.appendChild(script);
   });
 }
@@ -47,10 +45,11 @@ export default function PricingSection() {
             const verify = await fetch('/api/billing/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payment) });
             const data = await verify.json();
             if (!verify.ok) throw new Error(data.error || 'Payment verify nahi ho paya.');
-            setPaid(true); setMessage('Premium active hai. Video Generator try karo!');
+            setPaid(true); setMessage('Premium active hai. Video Studio ab use kar sakte ho!');
+            window.dispatchEvent(new Event('kryptex-premium-updated'));
           } catch (error) { setMessage(error instanceof Error ? error.message : 'Payment verify nahi ho paya.'); }
         },
-        modal: { ondismiss: () => setMessage('Checkout close ho gaya. Koi payment complete nahi hui to dobara try kar sakte ho.') }
+        modal: { ondismiss: () => setMessage('Checkout close ho gaya. Payment complete nahi hui to dobara try kar sakte ho.') }
       });
       checkout.open();
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Payment start nahi ho paya.'); }
@@ -59,7 +58,7 @@ export default function PricingSection() {
 
   return <section id="pricing" className="pricing-section section-shell">
     <div className="pricing-glow" />
-    <div className="pricing-copy"><div className="eyebrow">SIMPLE PRICING · NO CONFUSION</div><h2>Make more. <span className="gradient-text">Create better.</span></h2><p>Shuru karne ke liye free tools. Video generator ke liye ek simple premium plan.</p><div className="pricing-points"><span>✓ Free chat + image access</span><span>✓ 8 text generators</span><span>✓ Premium video job access</span></div></div>
-    <div className="price-card"><div className="popular-pill">CREATOR PLAN</div><div className="price-line"><span>₹</span><strong>99</strong><small>/ access</small></div><p>One simple upgrade for Agnes video generation.</p><div className="price-divider" /><div className="plan-row"><span>✦</span><div><strong>Ankit Kryptex AI</strong><small>Text chat + image generation</small></div><b>Free*</b></div><div className="plan-row"><span>▶</span><div><strong>AI Video Generator</strong><small>5–12 second video jobs, model permitting</small></div><b>Premium</b></div><button className="button-primary full-width" type="button" disabled={busy || paid} onClick={buyPremium}>{busy ? <><span className="spinner" /> Preparing…</> : paid ? '✓ Premium Active' : 'Unlock Premium · ₹99'}</button>{message && <p className={paid ? 'success-note' : 'payment-note'} role="status">{message}</p>}<small className="legal-note">*AI provider availability and usage limits may vary. Payment only works after Razorpay is configured.</small></div>
+    <div className="pricing-copy"><div className="eyebrow">SIMPLE PRICING · NO CONFUSION</div><h2>Make more. <span className="gradient-text">Create better.</span></h2><p>Shuru karne ke liye free tools. Video generator ke liye ek simple premium plan.</p><div className="pricing-points"><span>✓ Free chat + image access</span><span>✓ 8 text generators</span><span>✓ Premium video generation + studio</span></div></div>
+    <div className="price-card"><div className="popular-pill">CREATOR PLAN</div><div className="price-line"><span>₹</span><strong>99</strong><small>/ access</small></div><p>One simple upgrade for Agnes video generation.</p><div className="price-divider" /><div className="plan-row"><span>✦</span><div><strong>Ankit Kryptex AI</strong><small>Text chat + image generation</small></div><b>Free*</b></div><div className="plan-row"><span>▶</span><div><strong>AI Video Generator</strong><small>5–12 second video jobs + basic trim editor</small></div><b>Premium</b></div><button className="button-primary full-width" type="button" disabled={busy || paid} onClick={buyPremium}>{busy ? <><span className="spinner" /> Preparing…</> : paid ? '✓ Premium Active' : 'Unlock Premium · ₹99'}</button>{message && <p className={paid ? 'success-note' : 'payment-note'} role="status">{message}</p>}<small className="legal-note">*AI provider availability and usage limits may vary. Payment only works after Razorpay is configured.</small></div>
   </section>;
 }

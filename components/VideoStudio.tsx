@@ -167,12 +167,12 @@ export default function VideoStudio() {
           <section className="studio-card">
             <div className="studio-card-title"><span className="studio-step">01</span><div><h2>Create video</h2><p>Apna scene aur output format set karo.</p></div></div>
             <label className="field-label" htmlFor="agnes-prompt">VIDEO PROMPT</label>
-            <textarea id="agnes-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} maxLength={2500} placeholder="Example: Cinematic vertical shot of a futuristic electric car driving through a neon-lit city at night, realistic camera movement, detailed reflections…" />
+            <textarea id="agnes-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); if (premium === false) window.location.href = '/#pricing'; else if (premium === true) void generateVideo(); } }} maxLength={2500} placeholder="Example: Cinematic vertical shot of a futuristic electric car driving through a neon-lit city at night, realistic camera movement, detailed reflections…" />
             <div className="studio-fields">
               <label><span className="field-label">DURATION</span><select value={seconds} onChange={(event) => setSeconds(Number(event.target.value))}><option value={5}>5 seconds</option><option value={8}>8 seconds</option><option value={10}>10 seconds</option><option value={12}>12 seconds</option></select></label>
               <label><span className="field-label">ASPECT RATIO</span><select value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)}><option value="9:16">9:16 · Shorts</option><option value="16:9">16:9 · YouTube</option><option value="1:1">1:1 · Square</option></select></label>
             </div>
-            <div className="studio-actions"><span>{prompt.length}/2500</span><button className="button-primary" type="button" disabled={!premium || busy || premium === null} onClick={generateVideo}>{busy ? <><i className="spinner" /> Generating…</> : '▶ Generate with Agnes'}</button></div>
+            <div className="studio-actions"><span>{prompt.length}/2500 · Ctrl + Enter to generate</span><button className="button-primary" type="button" disabled={busy || premium === null} onClick={() => { if (premium === false) { window.location.href = '/#pricing'; return; } void generateVideo(); }}>{busy ? <><i className="spinner" /> Generating…</> : premium === false ? 'Unlock Premium · ₹99' : '▶ Generate with Agnes'}</button></div>
             {statusText && <div className="studio-status" role="status"><div className="studio-status-top"><span>{statusText}</span><b>{progress}%</b></div><div className="studio-progress"><i style={{ width: progress + '%' }} /></div></div>}
             {error && <div className="error-box" role="alert">{error}</div>}
           </section>

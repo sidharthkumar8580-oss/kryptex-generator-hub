@@ -3,10 +3,11 @@ import './globals.css';
 import Script from 'next/script';
 import Header from '@/components/Header';
 import AnkitAIFloatingButton from '@/components/AnkitAIFloatingButton';
+import VoiceAssistant from '@/components/VoiceAssistant';
 
 export const metadata: Metadata = {
   title: 'Kryptex Generator Hub — Ek Website, Saare Kaam + Apna AI',
-  description: 'Ankit Kryptex ka creative workspace: Hindi Shorts scripts, hooks, titles, captions, thumbnail prompts, AI chat, image generation aur premium video tools.',
+  description: 'Ankit Kryptex ka creative workspace: Hindi Shorts scripts, hooks, titles, captions, thumbnail prompts, AI chat, image generation aur free AI tools.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://ankitkryptex.com'),
   applicationName: 'Kryptex Generator Hub',
   openGraph: {
@@ -32,6 +33,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     gtag('js', new Date());
     gtag('config', 'G-KYEHWR4HRZ');`}
   </Script>
-  <Header />{children}<AnkitAIFloatingButton />
+  <Header />{children}<AnkitAIFloatingButton /><VoiceAssistant />
 </body></html>;
 }

@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 
 type Tool = { id: string; icon: string; name: string; category: string; detail: string; example: string; premium?: boolean };
 const tools: Tool[] = [
@@ -13,7 +12,7 @@ const tools: Tool[] = [
   { id: 'story', icon: '◷', name: 'Story Maker', category: 'STORYTELLING', detail: 'Fast, engaging mini stories', example: 'Ek student ko future ka AI robot milta hai' },
   { id: 'thumbnail', icon: '▧', name: 'Thumbnail Prompt', category: 'VISUALS', detail: 'Cinematic thumbnail prompts', example: 'Quantum computer, neon purple lab' },
   { id: 'image', icon: '▧', name: 'AI Image Creator', category: 'FREE · IMAGE', detail: 'Prompt se AI image generate karo', example: 'A futuristic purple AI lab, cinematic lighting' },
-  { id: 'video', icon: '▶', name: 'AI Video Generator', category: 'PREMIUM · ₹99', detail: 'Agnes AI se short video generate karo', example: 'Vertical cinematic shot of a futuristic AI lab', premium: true }
+  { id: 'video', icon: '▶', name: 'AI Video Generator', category: 'FREE · VIDEO', detail: 'Agnes AI se short video generate karo', example: 'Vertical cinematic shot of a futuristic AI lab' }
 ];
 
 export default function ToolGrid() {
@@ -52,7 +51,6 @@ export default function ToolGrid() {
 
   async function generate() {
     if (!topic.trim()) { setError('Pehle topic ya prompt likho.'); return; }
-    if (selected === 'video' && !hasAccess) { setError('Video Studio use karne ke liye Premium unlock karo.'); return; }
     setBusy(true); setError(''); setResult(''); setImageUrl(''); setProgress('');
     try {
       if (selected === 'image') {
@@ -94,16 +92,16 @@ export default function ToolGrid() {
 
   return (
     <section id="tools" className="tools-section section-shell">
-      <div className="section-heading"><div><div className="eyebrow">YOUR CREATOR TOOLKIT</div><h2>10 tools. <span className="gradient-text">One workspace.</span></h2><p>Tool choose karo, topic likho, aur create karna shuru karo.</p></div><span className="tool-count">10 GENERATORS</span></div>
+      <div className="section-heading"><div><div className="eyebrow">YOUR CREATOR TOOLKIT</div><h2>All tools. <span className="gradient-text">One workspace.</span></h2><p>Tool choose karo, topic likho, aur create karna shuru karo.</p></div><span className="tool-count">FREE TOOLS</span></div>
       <div className="creator-workspace">
-        <div className="tool-picker" aria-label="Choose a generator">{tools.map((tool) => <button key={tool.id} type="button" onClick={() => selectTool(tool)} className={'tool-card ' + (selected === tool.id ? 'selected' : '')}><span className="tool-icon">{tool.icon}</span><span className="tool-card-copy"><strong>{tool.name}</strong><small>{tool.detail}</small></span>{tool.premium ? <span className="premium-mini">{hasAccess ? 'ACTIVE' : '₹99'}</span> : <span className="tool-arrow">↗</span>}</button>)}</div>
+        <div className="tool-picker" aria-label="Choose a generator">{tools.map((tool) => <button key={tool.id} type="button" onClick={() => selectTool(tool)} className={'tool-card ' + (selected === tool.id ? 'selected' : '')}><span className="tool-icon">{tool.icon}</span><span className="tool-card-copy"><strong>{tool.name}</strong><small>{tool.detail}</small></span><span className="tool-arrow">↗</span></button>)}</div>
         <div className="generator-panel">
-          <div className="panel-topline"><span className="panel-icon">{active.icon}</span><span><small>{active.category}</small><h3>{active.name}</h3></span><span className="live-badge"><i /> {hasAccess && selected === 'video' ? 'PREMIUM ACTIVE' : 'READY'}</span></div>
+          <div className="panel-topline"><span className="panel-icon">{active.icon}</span><span><small>{active.category}</small><h3>{active.name}</h3></span><span className="live-badge"><i /> FREE · READY</span></div>
           <p className="panel-description">{active.detail}. Apne idea ko neeche likho.</p>
-          {active.premium && <div className="premium-note"><span>✦</span><div><strong>{hasAccess ? 'Premium access active hai' : 'Agnes Video Studio'}</strong><p>{hasAccess ? 'Aap video generate kar sakte ho.' : '₹99 plan unlock karne ke baad video generation available hogi.'}</p><Link className="text-link" href="/video-studio">Open full Video Studio ↗</Link>{!hasAccess && <p><Link className="text-link" href="/#pricing">Unlock Premium · ₹99 ↗</Link></p>}</div></div>}
+          <div className="free-tool-note">All tools are free to use. Provider availability and usage limits may apply.</div>
           <label className="field-label" htmlFor="generator-topic">{selected === 'video' ? 'VIDEO SCENE PROMPT' : 'YOUR TOPIC / IDEA'}</label>
-          <textarea id="generator-topic" value={topic} onChange={(event) => setTopic(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); if (selected === 'video' && !hasAccess) window.location.href = '/#pricing'; else void generate(); } }} rows={5} maxLength={2500} placeholder="Apna idea yahan likho…" />
-          <div className="panel-actions"><span className="char-count">{topic.length}/2500</span><button className="button-primary generate-button" type="button" onClick={() => { if (selected === 'video' && !hasAccess) { window.location.href = '/#pricing'; return; } void generate(); }} disabled={busy}>{busy ? <><span className="spinner" /> Creating…</> : selected === 'video' ? (hasAccess ? '▶ Generate Video' : 'Unlock Premium') : '✦ Generate'} <span>→</span></button></div>
+          <textarea id="generator-topic" value={topic} onChange={(event) => setTopic(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void generate(); } }} rows={5} maxLength={2500} placeholder="Apna idea yahan likho…" />
+          <div className="panel-actions"><span className="char-count">{topic.length}/2500</span><button className="button-primary generate-button" type="button" onClick={() => void generate()} disabled={busy}>{busy ? <><span className="spinner" /> Creating…</> : selected === 'video' ? '▶ Generate Video' : '✦ Generate'} <span>→</span></button></div>
           {error && <div className="error-box" role="alert">{error}</div>}{progress && !error && <p className="status-note" role="status">{progress}</p>}
           {result && <div className="result-card"><div className="result-header"><strong>{selected === 'video' ? 'YOUR VIDEO' : selected === 'image' ? 'YOUR IMAGE' : 'YOUR RESULT'}</strong>{selected !== 'video' && selected !== 'image' && <button type="button" className="copy-button" onClick={copyResult}>Copy ↗</button>}</div>{selected === 'video' && result.startsWith('http') ? <video className="video-result" controls playsInline src={'/api/video/download?url=' + encodeURIComponent(result)} /> : selected === 'image' && imageUrl ? <img className="tool-image-result" src={imageUrl} alt="AI generated image" /> : <pre>{result}</pre>}{selected === 'video' && result.startsWith('http') && <a className="text-link" href={'/api/video/download?url=' + encodeURIComponent(result)} download="kryptex-video.mp4">Download video ↓</a>}{selected === 'image' && imageUrl && <a className="text-link" href={imageUrl} target="_blank" rel="noreferrer">Open image ↗</a>}</div>}
         </div>

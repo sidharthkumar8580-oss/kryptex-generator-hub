@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 
 type VideoStatus = { status: string; progress: number; url: string | null; error: string | null };
 type FFmpegLike = {

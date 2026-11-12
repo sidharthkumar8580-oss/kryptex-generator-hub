@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type RazorpaySuccess = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
 type RazorpayOptions = {
@@ -28,6 +28,12 @@ export default function PricingSection() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [paid, setPaid] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/video/access', { cache: 'no-store' }).then((response) => response.json()).then((data) => {
+      if (data.premium === true) setPaid(true);
+    }).catch(() => {});
+  }, []);
 
   async function buyPremium() {
     setBusy(true); setMessage('');

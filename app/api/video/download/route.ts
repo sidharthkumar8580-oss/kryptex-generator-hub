@@ -5,7 +5,11 @@ import { isPremiumCookieValid, PREMIUM_COOKIE } from '@/lib/premium';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const ALLOWED_HOST = 'platform-outputs.agnes-ai.space';
+const ALLOWED_DOMAINS = ['platform-outputs.agnes-ai.space', 'agnes-ai.space', 'agnes-ai.com'];
+
+function isTrustedHost(hostname: string) {
+  return ALLOWED_DOMAINS.some((domain) => hostname === domain || hostname.endsWith('.' + domain));
+}
 
 export async function GET(request: NextRequest) {
   if (!isPremiumCookieValid(cookies().get(PREMIUM_COOKIE)?.value)) {
@@ -16,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   let target: URL;
   try { target = new URL(raw); } catch { return NextResponse.json({ error: 'Invalid video URL.' }, { status: 400 }); }
-  if (target.protocol !== 'https:' || target.hostname !== ALLOWED_HOST || target.username || target.password) {
+  if (target.protocol !== 'https:' || !isTrustedHost(target.hostname) || target.username || target.password) {
     return NextResponse.json({ error: 'Video host allowed nahi hai.' }, { status: 400 });
   }
 

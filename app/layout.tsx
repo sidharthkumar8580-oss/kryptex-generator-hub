@@ -6,15 +6,15 @@ import AnkitAIFloatingButton from '@/components/AnkitAIFloatingButton';
 import VoiceAssistant from '@/components/VoiceAssistant';
 
 export const metadata: Metadata = {
-  title: 'Kryptex Generator Hub — Ek Website, Saare Kaam + Apna AI',
-  description: 'Ankit Kryptex ka creative workspace: Hindi Shorts scripts, hooks, titles, captions, thumbnail prompts, AI chat, image generation aur free AI tools.',
+  title: 'Kryptex Studio — Create, Edit, Imagine',
+  description: 'Kryptex Studio: AI video creation, photo and video editing, creator tools and voice assistant.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://ankitkryptex.com'),
-  applicationName: 'Kryptex Generator Hub',
+  applicationName: 'Kryptex Studio',
   openGraph: {
-    title: 'Kryptex Generator Hub',
-    description: 'Ek Website, Saare Kaam + Apna AI',
+    title: 'Kryptex Studio',
+    description: 'Create, edit and imagine in one workspace',
     url: 'https://ankitkryptex.com',
-    siteName: 'Kryptex Generator Hub',
+    siteName: 'Kryptex Studio',
     type: 'website'
   }
 };

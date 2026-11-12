@@ -52,7 +52,7 @@ export default function VideoStudio() {
 
   async function generateVideo() {
     if (prompt.trim().length < 8) { setError('Kam se kam 8 characters ka detailed prompt likho.'); return; }
-    setBusy(true); setError(''); setVideoUrl(''); setEditedUrl(''); setProgress(0); setStatusText('Agnes se video job start ho rahi hai…');
+    setBusy(true); setError(''); setVideoUrl(''); setEditedUrl(''); setProgress(0); setStatusText('AI video job start ho rahi hai…');
     try {
       const response = await fetch('/api/video', {
         method: 'POST',
@@ -68,13 +68,13 @@ export default function VideoStudio() {
         const data = await poll.json() as VideoStatus;
         if (!poll.ok) throw new Error(data.error || 'Video status check nahi ho paya.');
         setProgress(Math.max(0, Math.min(100, Number(data.progress) || 0)));
-        setStatusText(data.status === 'queued' ? 'Agnes queue mein hai…' : 'Video generate ho rahi hai…');
+        setStatusText(data.status === 'queued' ? 'Video queue mein hai…' : 'Video generate ho rahi hai…');
         if (data.status === 'completed' && data.url) {
           setVideoUrl(data.url); setEndAt(seconds); setProgress(100); setStatusText('Video ready hai. Preview ya download karo.'); return;
         }
         if (['failed', 'error', 'cancelled'].includes(data.status)) throw new Error(data.error || 'Video generation fail ho gayi.');
       }
-      setStatusText('Agnes job abhi process ho sakti hai. Kuch der baad dobara try karo.');
+      setStatusText('Video job abhi process ho sakti hai. Kuch der baad dobara try karo.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Video request complete nahi ho payi.');
       setStatusText('');
@@ -188,7 +188,7 @@ export default function VideoStudio() {
     <main className="video-studio-page">
       <section className="video-studio-shell">
         <div className="studio-heading">
-          <div><div className="eyebrow">AGNES AI · CREATOR WORKSPACE</div><h1>Video <span className="gradient-text">Studio.</span></h1><p>Agnes se AI video generate karo ya apni video upload karke AI-assisted edit aur export karo.</p></div>
+          <div><div className="eyebrow">AI VIDEO · CREATOR WORKSPACE</div><h1>Video <span className="gradient-text">Studio.</span></h1><p>AI se video generate karo ya apni video upload karke AI-assisted edit aur export karo.</p></div>
           <Link href="/#tools" className="studio-back">← All tools</Link>
         </div>
 
@@ -202,14 +202,14 @@ export default function VideoStudio() {
               <label><span className="field-label">DURATION</span><select value={seconds} onChange={(event) => setSeconds(Number(event.target.value))}><option value={5}>5 seconds</option><option value={8}>8 seconds</option><option value={10}>10 seconds</option><option value={12}>12 seconds</option></select></label>
               <label><span className="field-label">ASPECT RATIO</span><select value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)}><option value="9:16">9:16 · Shorts</option><option value="16:9">16:9 · YouTube</option><option value="1:1">1:1 · Square</option></select></label>
             </div>
-            <div className="studio-actions"><span>{prompt.length}/2500 · Ctrl + Enter to generate</span><button className="button-primary" type="button" disabled={busy} onClick={() => void generateVideo()}>{busy ? <><i className="spinner" /> Generating…</> : '▶ Generate with Agnes'}</button></div>
+            <div className="studio-actions"><span>{prompt.length}/2500 · Ctrl + Enter to generate</span><button className="button-primary" type="button" disabled={busy} onClick={() => void generateVideo()}>{busy ? <><i className="spinner" /> Generating…</> : '▶ Generate AI video'}</button></div>
             {statusText && <div className="studio-status" role="status"><div className="studio-status-top"><span>{statusText}</span><b>{progress}%</b></div><div className="studio-progress"><i style={{ width: progress + '%' }} /></div></div>}
             {error && <div className="error-box" role="alert">{error}</div>}
           </section>
 
           <section className="studio-card output-card">
             <div className="studio-card-title"><span className="studio-step">02</span><div><h2>Preview & download</h2><p>Generation complete hone par video yahan dikhegi.</p></div></div>
-            {videoUrl ? <><video className="studio-video" controls playsInline src={videoDownloadUrl} onLoadedMetadata={(event) => { const d = event.currentTarget.duration; if (Number.isFinite(d)) { setDuration(d); setEndAt(d); } }} /><div className="studio-download-row"><a className="button-primary" href={videoDownloadUrl} download="kryptex-agnes-video.mp4">↓ Download original</a><a className="button-secondary" href={videoUrl} target="_blank" rel="noreferrer">Open source ↗</a></div></> : <div className="video-placeholder"><span>▶</span><strong>Your video will appear here</strong><small>Generate video to see preview and editing tools.</small></div>}
+            {videoUrl ? <><video className="studio-video" controls playsInline src={videoDownloadUrl} onLoadedMetadata={(event) => { const d = event.currentTarget.duration; if (Number.isFinite(d)) { setDuration(d); setEndAt(d); } }} /><div className="studio-download-row"><a className="button-primary" href={videoDownloadUrl} download="kryptex-ai-video.mp4">↓ Download original</a><a className="button-secondary" href={videoUrl} target="_blank" rel="noreferrer">Open source ↗</a></div></> : <div className="video-placeholder"><span>▶</span><strong>Your video will appear here</strong><small>Generate video to see preview and editing tools.</small></div>}
           </section>
         </div>
 

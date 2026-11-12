@@ -1,16 +1,10 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAgnesVideoStatus } from '@/lib/agnes';
-import { isPremiumCookieValid, PREMIUM_COOKIE } from '@/lib/premium';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  if (!isPremiumCookieValid(cookies().get(PREMIUM_COOKIE)?.value)) {
-    return NextResponse.json({ error: 'Premium plan required.' }, { status: 402 });
-  }
-
   const videoId = request.nextUrl.searchParams.get('videoId') || '';
   if (!videoId || videoId.length > 200 || !/^[a-zA-Z0-9._:-]+$/.test(videoId)) {
     return NextResponse.json({ error: 'Invalid video ID.' }, { status: 400 });

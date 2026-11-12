@@ -98,13 +98,14 @@ export default function VideoStudio() {
     try {
       const dynamicImport = new Function('url', 'return import(url)') as (url: string) => Promise<any>;
       const mod = await dynamicImport('https://esm.sh/@ffmpeg/ffmpeg@0.12.15');
+      const util = await dynamicImport('https://esm.sh/@ffmpeg/util@0.12.2');
       const ffmpeg: FFmpegLike = new mod.FFmpeg();
       ffmpeg.on('progress', (event: any) => {
         const percent = Math.round((Number(event?.progress) || 0) * 100);
         setEditProgress('Editing… ' + percent + '%');
       });
-      const coreJs = await mod.toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js', 'text/javascript');
-      const coreWasm = await mod.toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm', 'application/wasm');
+      const coreJs = await util.toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js', 'text/javascript');
+      const coreWasm = await util.toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm', 'application/wasm');
       await ffmpeg.load({ coreURL: coreJs, wasmURL: coreWasm });
       ffmpegRef.current = ffmpeg;
       setFfmpegReady(true);

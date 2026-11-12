@@ -32,6 +32,14 @@ export default function VideoStudio() {
   const [editorError, setEditorError] = useState('');
   const [duration, setDuration] = useState(0);
   const [ffmpegReady, setFfmpegReady] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState('');
+  const [uploadDuration, setUploadDuration] = useState(0);
+  const [aiEditPrompt, setAiEditPrompt] = useState('Make this video engaging: remove unnecessary beginning/end and keep the best continuous section.');
+  const [uploadEditBusy, setUploadEditBusy] = useState(false);
+  const [uploadEditStatus, setUploadEditStatus] = useState('');
+  const [uploadEditError, setUploadEditError] = useState('');
+  const [uploadEditedUrl, setUploadEditedUrl] = useState('');
   const ffmpegRef = useRef<FFmpegLike | null>(null);
   const previewUrlRef = useRef('');
 
@@ -100,6 +108,49 @@ export default function VideoStudio() {
     } finally { setEditBusy(false); }
   }
 
+  function chooseUpload(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith('video/')) { setUploadEditError('Please ek video file select karo.'); return; }
+    if (file.size > 120 * 1024 * 1024) { setUploadEditError('Phone browser par 120 MB tak ki video upload karo.'); return; }
+    if (uploadPreview) URL.revokeObjectURL(uploadPreview);
+    if (uploadEditedUrl) URL.revokeObjectURL(uploadEditedUrl);
+    setUploadFile(file); setUploadPreview(URL.createObjectURL(file)); setUploadEditedUrl(''); setUploadEditError(''); setUploadEditStatus('');
+  }
+
+  async function aiEditUploadedVideo() {
+    if (!uploadFile || !uploadDuration || !aiEditPrompt.trim()) return;
+    setUploadEditBusy(true); setUploadEditError(''); setUploadEditStatus('AI tumhari editing instructions samajh raha hai…');
+    try {
+      const planResponse = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [
+        { role: 'system', content: 'You are a video editing planner. You cannot view the video itself. Based only on duration and user instructions, return ONLY valid JSON: {"start": number, "end": number, "notes": string}. Choose a safe continuous trim range within the supplied duration. Keep at least 1 second. If user asks for effects, captions, music or visual changes, explain in notes that this browser editor currently exports a clean trim only; do not pretend those effects were applied.' },
+        { role: 'user', content: `Video duration: ${uploadDuration.toFixed(2)} seconds. Editing request: ${aiEditPrompt}. Return start/end timestamps.` }
+      ] }) });
+      const planData = await planResponse.json();
+      if (!planResponse.ok) throw new Error(planData.error || 'AI edit plan nahi bana paya.');
+      const raw = String(planData.reply || '').replace(/```json|```/g, '').trim();
+      const plan = JSON.parse(raw);
+      const start = Math.max(0, Math.min(Number(plan.start) || 0, uploadDuration - 1));
+      const end = Math.max(start + 1, Math.min(Number(plan.end) || uploadDuration, uploadDuration));
+      if (!Number.isFinite(end) || end <= start) throw new Error('AI ne valid edit range nahi di.');
+      setUploadEditStatus(`AI plan: ${start.toFixed(1)}s se ${end.toFixed(1)}s tak. Video export ho rahi hai… ${String(plan.notes || '')}`);
+      const ffmpeg = await loadEditor();
+      if (!ffmpeg) throw new Error('Browser video editor load nahi hua.');
+      await ffmpeg.writeFile('upload-source.mp4', new Uint8Array(await uploadFile.arrayBuffer()));
+      const exitCode = await ffmpeg.exec(['-ss', String(start), '-i', 'upload-source.mp4', '-t', String(end - start), '-c', 'copy', '-movflags', '+faststart', 'upload-edited.mp4']);
+      if (exitCode !== 0) throw new Error('Video export complete nahi hua.');
+      const output = await ffmpeg.readFile('upload-edited.mp4');
+      const buffer = output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength) as ArrayBuffer;
+      const resultUrl = URL.createObjectURL(new Blob([buffer], { type: 'video/mp4' }));
+      if (uploadEditedUrl) URL.revokeObjectURL(uploadEditedUrl);
+      setUploadEditedUrl(resultUrl);
+      setUploadEditStatus(`Edited video ready! ${String(plan.notes || 'AI-selected section exported.')}`);
+      try { await ffmpeg.deleteFile('upload-source.mp4'); await ffmpeg.deleteFile('upload-edited.mp4'); } catch {}
+    } catch (err) {
+      setUploadEditError(err instanceof Error ? err.message : 'AI video edit nahi ho payi.');
+      setUploadEditStatus('');
+    } finally { setUploadEditBusy(false); }
+  }
+
   async function exportTrim() {
     if (!videoUrl || duration <= 0) return;
     const start = Math.max(0, Math.min(startAt, duration - 0.5));
@@ -137,7 +188,7 @@ export default function VideoStudio() {
     <main className="video-studio-page">
       <section className="video-studio-shell">
         <div className="studio-heading">
-          <div><div className="eyebrow">AGNES AI · CREATOR WORKSPACE</div><h1>Video <span className="gradient-text">Studio.</span></h1><p>Prompt se video banao, generation status dekho, preview karo aur basic trim karke export karo.</p></div>
+          <div><div className="eyebrow">AGNES AI · CREATOR WORKSPACE</div><h1>Video <span className="gradient-text">Studio.</span></h1><p>Agnes se AI video generate karo ya apni video upload karke AI-assisted edit aur export karo.</p></div>
           <Link href="/#tools" className="studio-back">← All tools</Link>
         </div>
 
@@ -161,6 +212,18 @@ export default function VideoStudio() {
             {videoUrl ? <><video className="studio-video" controls playsInline src={videoDownloadUrl} onLoadedMetadata={(event) => { const d = event.currentTarget.duration; if (Number.isFinite(d)) { setDuration(d); setEndAt(d); } }} /><div className="studio-download-row"><a className="button-primary" href={videoDownloadUrl} download="kryptex-agnes-video.mp4">↓ Download original</a><a className="button-secondary" href={videoUrl} target="_blank" rel="noreferrer">Open source ↗</a></div></> : <div className="video-placeholder"><span>▶</span><strong>Your video will appear here</strong><small>Generate video to see preview and editing tools.</small></div>}
           </section>
         </div>
+
+        <section className="studio-card upload-editor-card">
+          <div className="studio-card-title"><span className="studio-step">✦</span><div><h2>Upload your own video</h2><p>Apni video choose karo, AI ko batao kya edit chahiye, aur edited clip export karo.</p></div></div>
+          <label className="upload-dropzone"><input type="file" accept="video/*" onChange={(event) => chooseUpload(event.target.files?.[0])} /><span className="upload-icon">↑</span><strong>{uploadFile ? uploadFile.name : 'Tap to upload a video'}</strong><small>MP4, MOV, WebM · up to 120 MB · file stays in your browser</small></label>
+          {uploadPreview && <div className="upload-workspace"><video className="studio-video" controls playsInline src={uploadPreview} onLoadedMetadata={(event) => setUploadDuration(event.currentTarget.duration)} />
+            <label className="field-label" htmlFor="ai-edit-request">DESCRIBE YOUR EDIT</label><textarea id="ai-edit-request" className="ai-edit-prompt" value={aiEditPrompt} onChange={(event) => setAiEditPrompt(event.target.value)} maxLength={500} placeholder="Example: Start thoda late karo aur ending se pehle cut kar do…" />
+            <button className="button-primary" type="button" disabled={uploadEditBusy || !uploadDuration} onClick={() => void aiEditUploadedVideo()}>{uploadEditBusy ? '✦ AI editing…' : '✦ Edit my video with AI'}</button>
+            {uploadEditStatus && <p className="status-note" role="status">{uploadEditStatus}</p>}{uploadEditError && <div className="error-box" role="alert">{uploadEditError}</div>}
+            {uploadEditedUrl && <div className="edited-result"><video controls playsInline src={uploadEditedUrl} /><a className="button-primary" href={uploadEditedUrl} download="kryptex-ai-edited-video.mp4">↓ Download edited video</a></div>}
+            <small className="editor-footnote">Note: AI video ko visually dekh nahi sakta; woh tumhari instructions aur duration ke basis par cut points suggest karta hai. Is version mein actual export trim/cut hai, effects/captions/music auto-apply nahi hote.</small>
+          </div>}
+        </section>
 
         {videoUrl && <section className="studio-card editor-card">
           <div className="studio-card-title"><span className="studio-step">03</span><div><h2>Quick video editor</h2><p>Video ka start aur end select karke short clip export karo. Original file unchanged rahegi.</p></div></div>

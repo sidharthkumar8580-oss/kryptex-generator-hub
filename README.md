@@ -45,6 +45,7 @@ After changing environment variables, trigger a fresh Netlify build so deployed 
 
 ## Useful routes
 
+- `/mcp` — remote MCP endpoint exposing Kryptex website discovery and supported creator actions (generation actions require `MCP_BEARER_TOKEN`)
 - `/` — home and generator tools
 - `/ai` — Ankit Kryptex AI
 - `/video-studio` — Agnes Video Studio

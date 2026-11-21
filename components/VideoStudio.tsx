@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
 type VideoStatus = { status: string; progress: number; url: string | null; error: string | null };
+type HistoryItem = { id: string; prompt: string; url: string; createdAt: number; expiresAt: number; seconds: number; aspectRatio: string };
+const HISTORY_KEY = 'kryptex-video-history-v1';
+const HISTORY_TTL = 3 * 24 * 60 * 60 * 1000;
 type FFmpegLike = {
   load: (options: { coreURL: string; wasmURL: string }) => Promise<void>;
   writeFile: (name: string, data: Uint8Array) => Promise<void>;
@@ -17,6 +20,8 @@ const proxyUrl = (url: string) => '/api/video/download?url=' + encodeURIComponen
 
 export default function VideoStudio() {
   const [prompt, setPrompt] = useState('');
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [seconds, setSeconds] = useState(5);
   const [aspectRatio, setAspectRatio] = useState('9:16');
   const [busy, setBusy] = useState(false);
@@ -46,9 +51,36 @@ export default function VideoStudio() {
   const videoDownloadUrl = useMemo(() => videoUrl ? proxyUrl(videoUrl) : '', [videoUrl]);
 
 
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') as HistoryItem[];
+      const valid = saved.filter((item) => item && typeof item.url === 'string' && Number(item.expiresAt) > Date.now());
+      setHistory(valid);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(valid));
+    } catch { localStorage.removeItem(HISTORY_KEY); }
+  }, []);
+
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
   }, []);
+
+  function saveToHistory(url: string) {
+    const now = Date.now();
+    const item: HistoryItem = { id: String(now) + '-' + Math.random().toString(36).slice(2, 8), prompt: prompt.trim(), url, createdAt: now, expiresAt: now + HISTORY_TTL, seconds, aspectRatio };
+    setHistory((current) => {
+      const next = [item, ...current.filter((entry) => entry.url !== url)].filter((entry) => entry.expiresAt > now);
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  function removeHistoryItem(id: string) {
+    setHistory((current) => { const next = current.filter((item) => item.id !== id); localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); return next; });
+  }
+
+  function restoreHistoryItem(item: HistoryItem) {
+    setVideoUrl(item.url); setPrompt(item.prompt); setSeconds(item.seconds); setAspectRatio(item.aspectRatio); setProgress(100); setStatusText('Saved video history se open ki gayi.'); setHistoryOpen(false);
+  }
 
   async function generateVideo() {
     if (prompt.trim().length < 8) { setError('Kam se kam 8 characters ka detailed prompt likho.'); return; }
@@ -70,7 +102,7 @@ export default function VideoStudio() {
         setProgress(Math.max(0, Math.min(100, Number(data.progress) || 0)));
         setStatusText(data.status === 'queued' ? 'Video queue mein hai…' : 'Video generate ho rahi hai…');
         if (data.status === 'completed' && data.url) {
-          setVideoUrl(data.url); setEndAt(seconds); setProgress(100); setStatusText('Video ready hai. Preview ya download karo.'); return;
+          setVideoUrl(data.url); setEndAt(seconds); setProgress(100); setStatusText('Video ready hai. Preview ya download karo.'); saveToHistory(data.url); return;
         }
         if (['failed', 'error', 'cancelled'].includes(data.status)) throw new Error(data.error || 'Video generation fail ho gayi.');
       }
@@ -190,10 +222,11 @@ export default function VideoStudio() {
 
   return (
     <main className="video-studio-page">
+      {historyOpen && <><button className="history-scrim" aria-label="Close history" onClick={() => setHistoryOpen(false)} /><aside className="history-drawer" aria-label="Video generation history"><div className="history-drawer-head"><div><span className="eyebrow">YOUR LIBRARY</span><h2>Video history</h2><p>History entries 3 din baad is device se automatically remove ho jayengi.</p></div><button type="button" className="history-close" onClick={() => setHistoryOpen(false)} aria-label="Close">×</button></div><div className="history-list">{history.length ? history.map((item) => <article className="history-item" key={item.id}><button type="button" className="history-item-main" onClick={() => restoreHistoryItem(item)}><span className="history-thumb">▶</span><span className="history-item-copy"><b>{item.prompt || 'AI generated video'}</b><small>{new Date(item.createdAt).toLocaleString()} · {item.seconds}s · {item.aspectRatio}</small><em>History expires after 3 days</em></span></button><button type="button" className="history-remove" onClick={() => removeHistoryItem(item.id)} aria-label="Remove from history">×</button></article>) : <div className="history-empty"><span>▤</span><b>No videos yet</b><small>Generated videos yahan automatically save honge.</small></div>}</div><div className="history-drawer-foot">History is saved in this browser. Provider-hosted video files follow the provider’s own retention policy.</div></aside></>}
       <section className="video-studio-shell">
         <div className="studio-heading">
           <div><div className="eyebrow">AI VIDEO · CREATOR WORKSPACE</div><h1>Video <span className="gradient-text">Studio.</span></h1><p>AI se video generate karo ya apni video upload karke AI-assisted edit aur export karo.</p></div>
-          <Link href="/#tools" className="studio-back">← All tools</Link>
+          <div className="studio-heading-actions"><button type="button" className="studio-history-trigger" onClick={() => setHistoryOpen(true)} aria-label="Open video history"><span className="hamburger-lines"><i/><i/><i/></span><span>History</span><b>{history.length}</b></button><Link href="/#tools" className="studio-back">← All tools</Link></div>
         </div>
 
         
